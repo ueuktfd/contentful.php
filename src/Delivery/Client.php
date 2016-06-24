@@ -9,7 +9,7 @@ namespace Contentful\Delivery;
 use Contentful\Client as BaseClient;
 use Contentful\Delivery\Synchronization\Manager;
 use Contentful\Query as BaseQuery;
-use Contentful\Log\LoggerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * A Client is used to communicate the Contentful Delivery API.
