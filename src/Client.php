@@ -11,7 +11,9 @@ use Contentful\Log\StandardTimer;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Exception\ClientException;
-use Contentful\Log\LoggerInterface;
+use GuzzleHttp\RequestOptions;
+use GuzzleHttp\TransferStats;
+use Psr\Log\LoggerInterface;
 use GuzzleHttp\Psr7;
 
 /**
@@ -39,6 +41,12 @@ abstract class Client
      */
     private $api;
 
+
+    /**
+     * @var \Closure
+     */
+    protected $logClosure;
+
     /**
      * Client constructor.
      *
@@ -51,7 +59,10 @@ abstract class Client
     {
         $stack = HandlerStack::create();
         $stack->push(new BearerToken($token));
-        $this->logger = $logger ?: new NullLogger();
+        if ($logger) {
+            $this->logger = $logger;
+            $this->assignClosure();
+        }
 
         $this->api = $api;
         $this->baseUri = $baseUri;
@@ -86,19 +97,22 @@ abstract class Client
         }
         catch (\Exception $e) {
             $timer->stop();
-            $this->logger->log($this->api, $request, $timer, $response, $e);
+//            $this->logger->log($this->api, $request, $timer, $response, $e);
 
             throw $e;
         }
 
         $timer->stop();
-        $this->logger->log($this->api, $request, $timer, $response);
+//        $this->logger->log($this->api, $request, $timer, $response);
 
         return $result;
     }
 
     private function doRequest($request, $options)
     {
+        if ($this->logger && empty($options[RequestOptions::ON_STATS])) {
+            $options[RequestOptions::ON_STATS] = $this->logClosure;
+        }
         try {
             return $this->httpClient->send($request, $options);
         } catch (ClientException $e) {
@@ -184,4 +198,24 @@ abstract class Client
 
         return $result;
     }
+
+    protected function assignClosure()
+    {
+        $logger = $this->logger;
+        $api = $this->api;
+        $this->logClosure = function (TransferStats $stats) use ($logger, $api) {
+            $logger->notice(
+                sprintf("URL: %s\nAPI: %s , Duration: %s \n>>>>>>>>\n%s\n<<<<<<<<\n%s\n--------\n%s",
+                    $stats->getEffectiveUri(),
+                    $api,
+                    $stats->getTransferTime(),
+                    $stats->getRequest(),
+                    $stats->getResponse(),
+                    $stats->getHandlerErrorData()
+                )
+            );
+
+        };
+    }
+
 }
