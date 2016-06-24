@@ -202,15 +202,13 @@ abstract class Client
     protected function assignClosure()
     {
         $logger = $this->logger;
-        $api = $this->api;
-        $this->logClosure = function (TransferStats $stats) use ($logger, $api) {
+        $this->logClosure = function (TransferStats $stats) use ($logger) {
             $logger->notice(
-                sprintf("URL: %s\nAPI: %s , Duration: %s \n>>>>>>>>\n%s\n<<<<<<<<\n%s\n--------\n%s",
+                sprintf("URL: %s\n Duration: %s \n>>>>>>>>\n%s\n<<<<<<<<\n%s\n--------\n%s",
                     $stats->getEffectiveUri(),
-                    $api,
                     $stats->getTransferTime(),
-                    $stats->getRequest(),
-                    $stats->getResponse(),
+                    Psr7\str($stats->getRequest()),
+                    Psr7\str($stats->getResponse()),
                     $stats->getHandlerErrorData()
                 )
             );
