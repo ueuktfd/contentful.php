@@ -10,6 +10,7 @@ use Contentful\Client as BaseClient;
 use Contentful\Delivery\Synchronization\Manager;
 use Contentful\Query as BaseQuery;
 use Psr\Log\LoggerInterface;
+use Doctrine\Common\Cache\Cache as CacheInteraface;
 
 /**
  * A Client is used to communicate the Contentful Delivery API.
@@ -46,17 +47,18 @@ class Client extends BaseClient
      * @param string          $spaceId ID of the space used with this Client.
      * @param bool            $preview True to use the Preview API.
      * @param LoggerInterface $logger
+     * @param CacheInteraface $cache
      *
      * @api
      */
-    public function __construct($token, $spaceId, $preview = false, LoggerInterface $logger = null)
+    public function __construct($token, $spaceId, $preview = false, LoggerInterface $logger = null, CacheInteraface $cache)
     {
         $baseUri = $preview ? 'https://preview.contentful.com/spaces/' : 'https://cdn.contentful.com/spaces/';
         $api = $preview ? 'PREVIEW' : 'DELIVERY';
 
         $instanceCache = new InstanceCache;
 
-        parent::__construct($token, $baseUri . $spaceId . '/', $api, $logger);
+        parent::__construct($token, $baseUri . $spaceId . '/', $api, $logger, $cache);
 
         $this->preview = $preview;
         $this->instanceCache = $instanceCache;

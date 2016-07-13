@@ -15,12 +15,19 @@ use GuzzleHttp\RequestOptions;
 use GuzzleHttp\TransferStats;
 use Psr\Log\LoggerInterface;
 use GuzzleHttp\Psr7;
+use Doctrine\Common\Cache\Cache as CacheInterface;
 
 /**
  * Abstract client for common code for the different clients.
  */
 abstract class Client
 {
+
+    /**
+     * Cache timeout in seconds
+     */
+    const CACHE_TIMEOUT = 600;
+
     /**
      * @var GuzzleClient
      */
@@ -34,13 +41,17 @@ abstract class Client
     /**
      * @var LoggerInterface
      */
-    private $logger;
+    private $logger = null;
 
     /**
      * @var string
      */
     private $api;
 
+    /**
+     * @var CacheInterface
+     */
+    private $cache = null;
 
     /**
      * @var \Closure
@@ -54,8 +65,9 @@ abstract class Client
      * @param string          $baseUri
      * @param string          $api
      * @param LoggerInterface $logger
+     * @param CacheInterface  $cache
      */
-    public function __construct($token, $baseUri, $api, LoggerInterface $logger = null)
+    public function __construct($token, $baseUri, $api, LoggerInterface $logger = null, CacheInterface $cache = null)
     {
         $stack = HandlerStack::create();
         $stack->push(new BearerToken($token));
@@ -63,7 +75,9 @@ abstract class Client
             $this->logger = $logger;
             $this->assignClosure();
         }
-
+        if ($cache) {
+            $this->cache = $cache;
+        }
         $this->api = $api;
         $this->baseUri = $baseUri;
         $this->httpClient = new GuzzleClient([
@@ -91,17 +105,28 @@ abstract class Client
 
         // We define this variable so it's also available in the catch block.
         $response = null;
-        try {
-            $response = $this->doRequest($request, $options);
-            $result = $this->decodeJson($response->getBody());
+        $result = false;
+        // for get requests we are trying to get data from cache
+        $key = md5(serialize($query) . $this->baseUri . $path);
+        if ($method == 'GET' && $this->cache && $data = $this->cache->fetch($key)) {
+            $result = $this->decodeJson($data);
         }
-        catch (\Exception $e) {
-            $timer->stop();
-//            $this->logger->log($this->api, $request, $timer, $response, $e);
+        if (!$result) {
+            try {
+                $response = $this->doRequest($request, $options);
+                $body = $response->getBody();
+                // save result into cache
+                if ($method == 'GET' && $this->cache) {
+                    $this->cache->save($key, $body->__toString(), self::CACHE_TIMEOUT);
+                }
+                $result = $this->decodeJson($body);
+            } catch (\Exception $e) {
+                $timer->stop();
+                //            $this->logger->log($this->api, $request, $timer, $response, $e);
 
-            throw $e;
+                throw $e;
+            }
         }
-
         $timer->stop();
 //        $this->logger->log($this->api, $request, $timer, $response);
 
