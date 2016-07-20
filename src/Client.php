@@ -106,9 +106,11 @@ abstract class Client
         // We define this variable so it's also available in the catch block.
         $response = null;
         $result = false;
+        preg_match('|.*spaces/(.*)/|', $this->baseUri, $matches);
+        $spaceId = $matches[1];
         // for get requests we are trying to get data from cache
-        $key = md5(serialize($query) . $this->baseUri . $path);
-        if ($method == 'GET' && $this->cache && $data = $this->cache->fetch($key)) {
+        $key = $spaceId ."_". md5(serialize($query) . $this->baseUri . $path);
+        if ($method == 'GET' && $data = $this->cache->fetch($key)) {
             $result = $this->decodeJson($data);
         }
         if (!$result) {
