@@ -24,9 +24,9 @@ abstract class Client
 {
 
     /**
-     * Cache timeout in seconds
+     * Cache timeout in seconds, 0 - infinitive 
      */
-    const CACHE_TIMEOUT = 600;
+    const CACHE_TIMEOUT = 0;
 
     /**
      * @var GuzzleClient
