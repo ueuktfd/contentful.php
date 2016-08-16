@@ -113,6 +113,16 @@ class DynamicEntry extends LocalizedResource implements EntryInterface
             }
 
             if ($fieldConfig->getType() === 'Array' && $fieldConfig->getItemsType() === 'Link') {
+
+                $result = array_filter($result, function($value) use ($client) {
+                    $wrongIds = $client->getBuilder()->getWrongEntriesIds();
+                    if (in_array($value->getId(),$wrongIds)) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                });
+
                 return array_map(function ($value) use ($getId, $client) {
                     if ($getId) {
                         return $value->getId();

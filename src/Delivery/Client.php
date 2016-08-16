@@ -205,7 +205,11 @@ class Client extends BaseClient
      */
     public function resolveLink(Link $link)
     {
+        $wrongIds = $this->builder->getWrongEntriesIds();
         $id = $link->getId();
+        if (in_array($id, $wrongIds)) {
+            return null;
+        }
         $type = $link->getLinkType();
 
         switch ($link->getLinkType()) {
@@ -288,5 +292,11 @@ class Client extends BaseClient
     private function requestAndBuild($method, $path, array $options = [])
     {
         return $this->builder->buildObjectsFromRawData($this->request($method, $path, $options));
+    }
+
+
+    public function getBuilder()
+    {
+        return $this->builder;
     }
 }

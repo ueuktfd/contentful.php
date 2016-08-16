@@ -36,6 +36,10 @@ class ResourceBuilder
      */
     private $spaceId;
 
+
+    protected $wrongEntries = [];
+
+
     /**
      * ResourceBuilder constructor.
      *
@@ -60,6 +64,13 @@ class ResourceBuilder
     public function buildObjectsFromRawData($data)
     {
         $type = $data->sys->type;
+
+        if (isset($data->errors) && !empty($data->errors)) {
+            foreach($data->errors as $error) {
+                $this->wrongEntries[] = $error->details->id;
+            }
+            $this->wrongEntries = array_unique($this->wrongEntries);
+        }
 
         if ($type === 'Array' && isset($data->includes)) {
             $this->processIncludes($data->includes);
@@ -205,6 +216,9 @@ class ResourceBuilder
      */
     private function buildEntry($data)
     {
+        if (in_array($data->sys->id, $this->wrongEntities)) {
+            return null;
+        }
         if ($this->instanceCache->hasEntry($data->sys->id)) {
             return $this->instanceCache->getEntry($data->sys->id);
         }
@@ -437,4 +451,10 @@ class ResourceBuilder
             isset($data->disabled) ? $data->disabled : false
         );
     }
+
+    public function getWrongEntriesIds()
+    {
+        return $this->wrongEntries;
+    }
+
 }
