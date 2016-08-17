@@ -216,7 +216,7 @@ class ResourceBuilder
      */
     private function buildEntry($data)
     {
-        if (in_array($data->sys->id, $this->wrongEntities)) {
+        if (in_array($data->sys->id, $this->wrongEntries)) {
             return null;
         }
         if ($this->instanceCache->hasEntry($data->sys->id)) {
